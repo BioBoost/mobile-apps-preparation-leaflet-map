@@ -1,11 +1,11 @@
 <template>
   <v-app>
     <v-main>
-      <HelloWorld />
+      <leaflet-map />
     </v-main>
   </v-app>
 </template>
 
 <script setup lang="ts">
-  import HelloWorld from '@/components/HelloWorld.vue'
+  import LeafletMap from '@/components/LeafletMap.vue'
 </script>

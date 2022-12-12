@@ -10,6 +10,8 @@ import App from './App.vue'
 // Composables
 import { createApp } from 'vue'
 
+import "leaflet/dist/leaflet.css";
+
 // Plugins
 import { registerPlugins } from '@/plugins'
 
