@@ -34,7 +34,7 @@ import Leaflet from 'leaflet';
 const center = ref([51.186917505979025, 3.2031807018500427] as Leaflet.LatLngTuple)
 const zoom = ref(13)    // Max = 19
 
-const setup_Leaflet = function() {
+const setup_leaflet = function() {
   const container = Leaflet.map("map_container").setView(center.value, zoom.value);
   Leaflet.tileLayer(
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -47,7 +47,7 @@ const setup_Leaflet = function() {
 
 onMounted(() => {
   console.log("Setting up the Leaflet map");
-  setup_Leaflet();
+  setup_leaflet();
 })
 </script>
 
@@ -129,7 +129,7 @@ const props = defineProps({
 Now we can create markers and show them on the map. We can even add an event handler in case someone clicks them:
 
 ```ts
-const setup_Leaflet = function() {
+const setup_leaflet = function() {
   // ...
 
   // Add markers
@@ -169,7 +169,7 @@ Now we need to add our own objects to the map instead of the default markers:
 import Leaflet from 'leaflet';
 import { DataMarker } from '@/lib/DataMarker';
 
-const setup_Leaflet = function() {
+const setup_leaflet = function() {
   // ...
 
   // Add markers
@@ -181,3 +181,170 @@ const setup_Leaflet = function() {
   })
 }
 ```
+
+## Not Reactive
+
+This solution is not reactive as the markers are populated when the map is mounted. You can test this by adding a button below the map that adds another location to the list.
+
+```vue
+<script setup lang="ts">
+import LeafletMap from '@/components/LeafletMap.vue'
+import { ref } from 'vue';
+import type { Location } from '@/types/location';
+
+const locations = ref([
+  { id: '1', name: 'VIVES Xaverianen', lat: 51.18721897883223, lng: 3.2029320966172814 },
+  { id: '2', name: 'Frituur Bosrand', lat: 51.187986416742454, lng: 3.209243333778497 },
+  { id: '3', name: 'VIVES Station', lat: 51.1940399495556, lng: 3.2180740271685564 },
+] as Location[]);
+
+const add_location = () => {
+  locations.value.push({
+    id: `${locations.value.length+1}`,
+    name: 'Who Knows',
+    lat: locations.value[locations.value.length-1].lat + 0.005,
+    lng: locations.value[locations.value.length-1].lng + 0.005
+  });
+
+  console.log(locations.value)
+}
+</script>
+
+<template>
+  <v-app>
+    <v-main>
+      <leaflet-map :locations="locations" />
+
+      <v-card>
+        <v-card-title>Add a location</v-card-title>
+        <v-card-actions>
+          <v-btn color="primary" @click="add_location">Add Location</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-main>
+  </v-app>
+</template>
+```
+
+## Using a Watcher
+
+We need to watch the locations in the `LeafletMap.vue` component. When it changes we have to remove the markers and create the new ones again. This will require some refactoring.
+
+1. First we need to save the map instance to an object so we can change it later on
+
+```ts
+// ...
+
+const map = {
+  container: {} as Leaflet.Map,
+}
+
+const setup_leaflet = function() {
+  map.container = Leaflet.map("map_container").setView(center.value, zoom.value);
+  Leaflet.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+      maxZoom: 19,
+    }
+  ).addTo(map.container);
+
+  // ...
+}
+```
+
+2. Next we need to combine the markers into a Leaflet `layerGroup`. This can then we added to the map and also removed.
+
+```ts
+// ...
+
+const map = {
+  container: {} as Leaflet.Map,
+  markers: {} as Leaflet.LayerGroup,
+}
+
+const setup_leaflet = function() {
+  // ...
+
+  // Create layer with markers
+  map.markers = Leaflet.layerGroup();
+
+  // Add markers to the layer group
+  props.locations.forEach((loc) => {
+    (new DataMarker([loc.lat, loc.lng], loc)).bindPopup(loc.name).addTo(map.markers).on('click', (e) => {
+      console.log("Someone clicked the marker at " + e.latlng);
+      console.log(e.target.data)
+    });
+  });
+
+  // Add the layer to the map
+  map.markers.addTo(map.container);
+}
+```
+
+3. Now if we wish to clear the markers and add them anew using a watcher, we should refactor the `setup_leaflet()` function and extract the marker creation into its own method.
+
+```ts
+const setup_leaflet = function() {
+  map.container = Leaflet.map("map_container").setView(center.value, zoom.value);
+  Leaflet.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+      maxZoom: 19,
+    }
+  ).addTo(map.container);
+
+  add_markers_to_map();
+}
+
+const add_markers_to_map = function() {
+  // Create layer with markers
+  map.markers = Leaflet.layerGroup();
+
+  // Add markers to the layer group
+  props.locations.forEach((loc) => {
+    (new DataMarker([loc.lat, loc.lng], loc)).bindPopup(loc.name).addTo(map.markers).on('click', (e) => {
+      console.log("Someone clicked the marker at " + e.latlng);
+      console.log(e.target.data)
+    });
+  });
+
+  // Add the layer to the map
+  map.markers.addTo(map.container);
+}
+```
+
+4. We should also remove the marker layer from the map before creating a new one. Otherwise we will get layer on top of layer
+
+```ts
+const add_markers_to_map = function() {
+  // Remove old layer of markers
+  if (map.markers) map.container.removeLayer(map.markers)
+
+  // Create layer with markers
+  map.markers = Leaflet.layerGroup();
+
+  // ...
+}
+```
+
+And now we can setup a simple watcher for the locations that calls the `add_markers_to_map()` when locations is changed. It's best to setup the watcher in the `setup_leaflet` method.
+
+```ts
+const setup_leaflet = function() {
+  // ...
+
+  // Renew the markers when locations change
+  watch(
+    () => props.locations,    // Can't watch property of reactive object
+    (locations) => {
+      console.log('Locations changed')
+      add_markers_to_map();
+    },
+    { deep: true }      // Force deep watcher
+  )
+}
+```
+
+Not sure if this is the best option here.
