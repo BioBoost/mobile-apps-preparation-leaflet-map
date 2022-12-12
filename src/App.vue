@@ -9,6 +9,7 @@ const locations = ref([
   { id: '3', name: 'VIVES Station', lat: 51.1940399495556, lng: 3.2180740271685564 },
 ] as Location[]);
 
+const refreshTicker = ref(0);
 const add_location = () => {
   locations.value.push({
     id: `${locations.value.length+1}`,
@@ -18,13 +19,14 @@ const add_location = () => {
   });
 
   console.log(locations.value)
+  refreshTicker.value++;
 }
 </script>
 
 <template>
   <v-app>
     <v-main>
-      <leaflet-map :locations="locations" />
+      <leaflet-map :locations="locations" :refreshTicker="refreshTicker" />
 
       <v-card>
         <v-card-title>Add a location</v-card-title>

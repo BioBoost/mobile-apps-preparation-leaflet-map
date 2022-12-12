@@ -347,4 +347,62 @@ const setup_leaflet = function() {
 }
 ```
 
-Not sure if this is the best option here.
+Not sure if this is the best option here. Deep watchers are expensive, especially on larger collections.
+
+### Another Option
+
+Another option may be found in some sort of *dirty* variable that indicates that the map needs to refresh.
+
+```ts
+//...
+
+const props = defineProps({
+  locations: { type: Array as PropType<Location[]>, default: () => [] },
+  refreshTicker: { type: Number, default: 0 }
+})
+
+//...
+
+const setup_leaflet = function() {
+  // ....
+
+  watch(
+    () => props.refreshTicker,    // Can't watch property of reactive object
+    (refreshTicker) => {
+      console.log('Refresh of map markers required')
+      add_markers_to_map();
+    },
+  )
+}
+```
+
+Now we can just use the `refreshTicker` as some sort of trigger.
+
+```vue
+<script setup lang="ts">
+// ...
+
+const refreshTicker = ref(0);
+const add_location = () => {
+  // ...
+
+  console.log(locations.value)
+  refreshTicker.value++;
+}
+</script>
+
+<template>
+  <v-app>
+    <v-main>
+      <leaflet-map :locations="locations" :refreshTicker="refreshTicker" />
+
+      <v-card>
+        <v-card-title>Add a location</v-card-title>
+        <v-card-actions>
+          <v-btn color="primary" @click="add_location">Add Location</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-main>
+  </v-app>
+</template>
+```

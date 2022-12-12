@@ -7,7 +7,8 @@ import type { PropType } from 'vue';
 import type { Location } from '@/types/location';
 
 const props = defineProps({
-  locations: { type: Array as PropType<Location[]>, default: () => [] }
+  locations: { type: Array as PropType<Location[]>, default: () => [] },
+  refreshTicker: { type: Number, default: 0 }
 })
 
 const center = ref([51.186917505979025, 3.2031807018500427] as Leaflet.LatLngTuple)
@@ -50,13 +51,21 @@ const setup_leaflet = function() {
   add_markers_to_map();
 
   // Renew the markers when locations change
+  // watch(
+  //   () => props.locations,    // Can't watch property of reactive object
+  //   (locations) => {
+  //     console.log('Locations changed')
+  //     add_markers_to_map();
+  //   },
+  //   { deep: true }      // Force deep watcher
+  // )
+
   watch(
-    () => props.locations,    // Can't watch property of reactive object
-    (locations) => {
-      console.log('Locations changed')
+    () => props.refreshTicker,    // Can't watch property of reactive object
+    (refreshTicker) => {
+      console.log('Refresh of map markers required')
       add_markers_to_map();
     },
-    { deep: true }      // Force deep watcher
   )
 }
 
