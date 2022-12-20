@@ -2,7 +2,7 @@
 
 Leaflet is an open-source JavaScript library for mobile-friendly interactive maps.
 
-More info can be found at [https://Leafletjs.com/](https://Leafletjs.com/).
+More info can be found at [https://leafletjs.com/](https://leafletjs.com/).
 
 OpenStreetMap is a collaborative project to create a free editable geographic database of the world. The geodata underlying the maps is considered the primary output of the project.
 
@@ -15,7 +15,7 @@ Basically while Leaflet is a framework for showing interactive maps, you still n
 Start by installing Leaflet as a dependency for your Vue3 project:
 
 ```bash
-npm install Leaflet
+npm install leaflet
 ```
 
 At the moment of this writing, that would be Leaflet v1.9.3.
@@ -70,7 +70,7 @@ Important! Don't forget to add the import of the CSS file in the `main.ts` file.
 
 ```ts
 // ...
-import "Leaflet/dist/Leaflet.css";
+import "leaflet/dist/leaflet.css";
 // ...
 ```
 
@@ -96,7 +96,7 @@ const locations = ref([
 <template>
   <v-app>
     <v-main>
-      <Leaflet-map :locations="locations" />
+      <leaflet-map :locations="locations" />
     </v-main>
   </v-app>
 </template>
